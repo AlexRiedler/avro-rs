@@ -3,27 +3,27 @@ use num_bigint::{BigInt, Sign};
 
 #[derive(Debug, Clone)]
 pub struct Decimal {
-    value: BigInt,
-    len: usize,
+    pub value: BigInt,
+    pub precision: usize,
+    pub scale: usize,
 }
 
-// We only care about value equality, not byte length. Can two equal `BigInt`s have two different
-// byte lengths?
+// precision does not matter, only need to check if the value scaled by scale, makes the the values equal
 impl PartialEq for Decimal {
     fn eq(&self, other: &Self) -> bool {
-        self.value == other.value
+        if self.scale == other.scale {
+            self.value == other.value
+        } else if self.scale > rhs.scale {
+            let scaled_value = &rhs.value * BigInt::from(10u64.pow(self.scale - rhs.scale)); // TODO: can this overflow
+            self.value == scaled_value
+        } else { // self.scale < rhs.scale
+            let scaled_value = &self.value * BigInt::from(10u64.pow(rhs.scale - self.scale)); // TODO: can this overflow
+            scaled_value == other.value
+        }
     }
 }
 
 impl Decimal {
-    pub(crate) fn len(&self) -> usize {
-        self.len
-    }
-
-    fn to_vec(&self) -> AvroResult<Vec<u8>> {
-        self.to_sign_extended_bytes_with_len(self.len)
-    }
-
     pub(crate) fn to_sign_extended_bytes_with_len(&self, len: usize) -> AvroResult<Vec<u8>> {
         let sign_byte = 0xFF * u8::from(self.value.sign() == Sign::Minus);
         let mut decimal_bytes = vec![sign_byte; len];
@@ -35,23 +35,5 @@ impl Decimal {
         })?;
         decimal_bytes[start_byte_index..].copy_from_slice(&raw_bytes);
         Ok(decimal_bytes)
-    }
-}
-
-impl std::convert::TryFrom<&Decimal> for Vec<u8> {
-    type Error = Error;
-
-    fn try_from(decimal: &Decimal) -> Result<Self, Self::Error> {
-        decimal.to_vec()
-    }
-}
-
-impl<T: AsRef<[u8]>> From<T> for Decimal {
-    fn from(bytes: T) -> Self {
-        let bytes_ref = bytes.as_ref();
-        Self {
-            value: BigInt::from_signed_bytes_be(bytes_ref),
-            len: bytes_ref.len(),
-        }
     }
 }

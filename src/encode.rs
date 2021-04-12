@@ -58,7 +58,7 @@ pub fn encode_ref(value: &Value, schema: &Schema, buffer: &mut Vec<u8>) {
                     }
                     encode(&Value::Fixed(size, bytes), inner, buffer)
                 }
-                Schema::Bytes => encode(&Value::Bytes(decimal.try_into().unwrap()), inner, buffer),
+                Schema::Bytes => encode(&Value::Bytes(decimal.value.to_signed_bytes_be()), inner, buffer),
                 _ => panic!("invalid inner type for decimal: {:?}", inner),
             },
             _ => panic!("invalid type for decimal: {:?}", schema),

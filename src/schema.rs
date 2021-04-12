@@ -101,7 +101,7 @@ pub enum Schema {
     Decimal {
         precision: DecimalMetadata,
         scale: DecimalMetadata,
-        inner: Box<Schema>,
+        inner: Box<Schema>, /// either Fixed or Bytes
     },
     /// A universally unique identifier, annotating a string.
     Uuid,

@@ -8,6 +8,7 @@ use crate::{
 };
 use std::{collections::HashMap, convert::TryFrom, io::Read, str::FromStr};
 use uuid::Uuid;
+use num_bigint::BigInt;
 
 #[inline]
 fn decode_long<R: Read>(reader: &mut R) -> AvroResult<Value> {
@@ -60,13 +61,13 @@ pub fn decode<R: Read>(schema: &Schema, reader: &mut R) -> AvroResult<Value> {
                 _ => Err(Error::BoolValue(buf[0])),
             }
         }
-        Schema::Decimal { ref inner, .. } => match &**inner {
-            Schema::Fixed { .. } => match decode(inner, reader)? {
-                Value::Fixed(_, bytes) => Ok(Value::Decimal(Decimal::from(bytes))),
+        Schema::Decimal { precision, scale, ref inner, .. } => match &**inner {
+            Schema::Fixed { size, .. } => match decode(inner, reader)? {
+                Value::Fixed(_, bytes) => Ok(Value::Decimal(Decimal(BigInt::from_signed_bytes_be(&*bytes), precision, scale))),
                 value => Err(Error::FixedValue(value.into())),
             },
             Schema::Bytes => match decode(inner, reader)? {
-                Value::Bytes(bytes) => Ok(Value::Decimal(Decimal::from(bytes))),
+                Value::Bytes(bytes) => Ok(Value::Decimal(Decimal(BigInt::from_signed_bytes_be(&*bytes), precision, scale))),
                 value => Err(Error::BytesValue(value.into())),
             },
             schema => Err(Error::ResolveDecimalSchema(schema.into())),
